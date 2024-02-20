@@ -1,0 +1,69 @@
+plugins {
+    id 'com.android.library'
+    id 'kotlin-android'
+}
+
+android {
+    namespace 'com.bumptech.glide.integration.compose'
+    compileSdk 34
+
+    defaultConfig {
+        minSdk 21
+        targetSdk 34
+
+        testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
+    }
+
+    buildFeatures {
+        compose = true
+    }
+
+    buildTypes {
+        release {
+            minifyEnabled false
+        }
+    }
+
+    composeOptions {
+        kotlinCompilerExtensionVersion libs.versions.kotlin.compiler.extension.get()
+    }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_1_8
+        targetCompatibility JavaVersion.VERSION_1_8
+    }
+
+    kotlinOptions {
+        jvmTarget = '1.8'
+    }
+}
+
+// Enable strict mode, but exclude tests.
+tasks.withType(org.jetbrains.kotlin.gradle.tasks.KotlinCompile) {
+    if (!it.name.contains("Test")) {
+        kotlinOptions.freeCompilerArgs += "-Xexplicit-api=strict"
+    }
+}
+
+dependencies {
+    implementation project(':library')
+    implementation project(':integration:ktx')
+    implementation(project(':integration:recyclerview')) {
+        transitive = false
+    }
+    implementation libs.compose.foundation
+    implementation libs.compose.ui
+    implementation libs.drawablepainter
+    implementation libs.androidx.core.ktx
+    debugImplementation libs.compose.ui.testmanifest
+    androidTestImplementation libs.junit
+    androidTestImplementation libs.compose.ui.testjunit4
+    androidTestImplementation libs.androidx.espresso
+    androidTestImplementation libs.androidx.espresso.idling
+    androidTestImplementation libs.androidx.junit
+    androidTestImplementation libs.compose.material
+    androidTestImplementation libs.truth
+    androidTestImplementation project(':testutil')
+}
+
+apply from: "${rootProject.projectDir}/scripts/upload.gradle"
