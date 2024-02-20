@@ -127,9 +127,10 @@ public class LruBitmapPool implements BitmapPool {
     }
 
     final int size = strategy.getSize(bitmap);
+    // 缓存
     strategy.put(bitmap);
     tracker.add(bitmap);
-
+    // 更新缓存的 bitmap 数量，和当前缓存的占用
     puts++;
     currentSize += size;
 
@@ -137,7 +138,7 @@ public class LruBitmapPool implements BitmapPool {
       Log.v(TAG, "Put bitmap in pool=" + strategy.logBitmap(bitmap));
     }
     dump();
-
+    // 检查是否达到最大的缓存值，如果达到了最大的缓存值，清除最旧的 Bitmap.
     evict();
   }
 
@@ -257,7 +258,9 @@ public class LruBitmapPool implements BitmapPool {
   }
 
   private synchronized void trimToSize(long size) {
+    // 循环清除最旧的数据，直到当前的缓存大小，小于目标大小
     while (currentSize > size) {
+      // 通过 SizeConfigStrategy#removeLast() 方法移除最旧的缓存
       final Bitmap removed = strategy.removeLast();
       // TODO: This shouldn't ever happen, see #331.
       if (removed == null) {
@@ -269,7 +272,9 @@ public class LruBitmapPool implements BitmapPool {
         return;
       }
       tracker.remove(removed);
+      // 重新计算当前缓存内存
       currentSize -= strategy.getSize(removed);
+      // 增加被移除的 Bitmap 数量
       evictions++;
       if (Log.isLoggable(TAG, Log.DEBUG)) {
         Log.d(TAG, "Evicting bitmap=" + strategy.logBitmap(removed));

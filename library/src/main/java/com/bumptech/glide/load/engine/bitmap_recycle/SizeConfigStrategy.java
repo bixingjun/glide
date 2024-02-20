@@ -61,11 +61,13 @@ public class SizeConfigStrategy implements LruPoolStrategy {
 
   @Override
   public void put(Bitmap bitmap) {
+    // 获取 Bitmap 大小
     int size = Util.getBitmapByteSize(bitmap);
+    // 通过 Bitmap 配置与大小计算 Key
     Key key = keyPool.get(size, bitmap.getConfig());
-
+    // 将 Bitmap 缓存到 GroupedLinkedMap 中
     groupedMap.put(key, bitmap);
-
+    // 重新计算当前配置的 Bitmap 的数量。
     NavigableMap<Integer, Integer> sizes = getSizesForConfig(bitmap.getConfig());
     Integer current = sizes.get(key.size);
     sizes.put(key.size, current == null ? 1 : current + 1);
@@ -109,6 +111,7 @@ public class SizeConfigStrategy implements LruPoolStrategy {
     Bitmap removed = groupedMap.removeLast();
     if (removed != null) {
       int removedSize = Util.getBitmapByteSize(removed);
+      // 重新计算当前配置的 Bitmap 的数量。
       decrementBitmapOfSize(removedSize, removed);
     }
     return removed;
@@ -116,6 +119,7 @@ public class SizeConfigStrategy implements LruPoolStrategy {
 
   private void decrementBitmapOfSize(Integer size, Bitmap removed) {
     Bitmap.Config config = removed.getConfig();
+    //（其中 Key 是 Bitmap 的大小， Value 是对应的数量）。
     NavigableMap<Integer, Integer> sizes = getSizesForConfig(config);
     Integer current = sizes.get(size);
     if (current == null) {
@@ -137,6 +141,7 @@ public class SizeConfigStrategy implements LruPoolStrategy {
   }
 
   private NavigableMap<Integer, Integer> getSizesForConfig(Bitmap.Config config) {
+    //（其中 Key 是 Bitmap 的大小， Value 是对应的数量）。
     NavigableMap<Integer, Integer> sizes = sortedSizes.get(config);
     if (sizes == null) {
       sizes = new TreeMap<>();
