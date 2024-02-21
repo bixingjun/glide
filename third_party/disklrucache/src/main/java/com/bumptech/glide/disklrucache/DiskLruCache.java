@@ -207,7 +207,12 @@ public final class DiskLruCache implements Closeable {
       throw new IllegalArgumentException("valueCount <= 0");
     }
 
+    //journal 文件的更新方式，更新时会将原来的 journal 文件修改成 journal.bak，
+    // 新写入的文件是 journal.tmp，当写入完成后会将 journal.tmp 重新命名为 journal，
+    // 然后删除 journal.bak 文件，所以更新成功后就不会有 journal.tmp 与 journal.bak 文件。
+
     // If a bkp file exists, use it instead.
+    // 如果有上次更新失败了，使用备份文件来当当前的 journal 文件.
     File backupFile = new File(directory, JOURNAL_FILE_BACKUP);
     if (backupFile.exists()) {
       File journalFile = new File(directory, JOURNAL_FILE);
@@ -221,9 +226,12 @@ public final class DiskLruCache implements Closeable {
 
     // Prefer to pick up where we left off.
     DiskLruCache cache = new DiskLruCache(directory, appVersion, valueCount, maxSize);
+    // 如果有上次的 journal 文件
     if (cache.journalFile.exists()) {
       try {
+        // 解析 journal 文件
         cache.readJournal();
+        // 移除上次 DIRTY 的更新失败的缓存文件
         cache.processJournal();
         return cache;
       } catch (IOException journalIsCorrupt) {
@@ -238,6 +246,7 @@ public final class DiskLruCache implements Closeable {
     }
 
     // Create a new empty cache.
+    // 没有上次的 journal 文件，创建一个新的 DiskLruCache 对象
     directory.mkdirs();
     cache = new DiskLruCache(directory, appVersion, valueCount, maxSize);
     cache.rebuildJournal();
@@ -252,6 +261,7 @@ public final class DiskLruCache implements Closeable {
       String appVersionString = reader.readLine();
       String valueCountString = reader.readLine();
       String blank = reader.readLine();
+      // 检查 journal 文件头
       if (!MAGIC.equals(magic)
           || !VERSION_1.equals(version)
           || !Integer.toString(appVersion).equals(appVersionString)

@@ -175,6 +175,7 @@ public final class ErrorRequestCoordinator implements RequestCoordinator, Reques
   @Override
   public void onRequestFailed(Request request) {
     synchronized (requestLock) {
+      // 如果当前失败的请求不是 errorRequest，也就是表示主请求失败了
       if (!request.equals(error)) {
         primaryState = RequestState.FAILED;
         if (errorState != RequestState.RUNNING) {
@@ -183,7 +184,7 @@ public final class ErrorRequestCoordinator implements RequestCoordinator, Reques
         }
         return;
       }
-
+      // 以下的情况表示主请求和失败请求都失败了
       errorState = RequestState.FAILED;
 
       if (parent != null) {

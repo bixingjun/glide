@@ -105,12 +105,16 @@ public class RequestManagerRetriever implements Handler.Callback {
   @NonNull
   public RequestManager get(@NonNull FragmentActivity activity) {
     if (Util.isOnBackgroundThread()) {
+      // 如果当前不是 UI 线程，直接使用 Application 的 RequestManager
       return get(activity.getApplicationContext());
     }
     assertNotDestroyed(activity);
+    // 监听 Activity 是否渲染第一帧
     frameWaiter.registerSelf(activity);
     boolean isActivityVisible = isActivityVisible(activity);
+    // 判断 Activity 当前是否可见
     Glide glide = Glide.get(activity.getApplicationContext());
+    // 调用 `LifecycleRequestManagerRetriever#getOrCreate()` 方法来获取或者创建一个对应的 RequestManager。
     return lifecycleRequestManagerRetriever.getOrCreate(
         activity,
         glide,
@@ -197,6 +201,10 @@ public class RequestManagerRetriever implements Handler.Callback {
 
   @Nullable
   private Fragment findSupportFragment(@NonNull View target, @NonNull FragmentActivity activity) {
+    //如果查找到的 Activity 是 FragmentActivity，遍历它的所有 Fragment，去查找当前 View 是属于哪个 Fragment，
+    // 如果能够找到 Fragment，那么就使用 Fragment 的 RequestManager；如果不能找到 Fragment，
+    // 就使用 FragmentActivity 的 RequestManager
+
     tempViewToSupportFragment.clear();
     findAllSupportFragmentsWithViews(
         activity.getSupportFragmentManager().getFragments(), tempViewToSupportFragment);

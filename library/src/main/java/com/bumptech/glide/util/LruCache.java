@@ -128,23 +128,29 @@ public class LruCache<T, Y> {
    */
   @Nullable
   public synchronized Y put(@NonNull T key, @Nullable Y item) {
+    // 获取 item 的大小
     final int itemSize = getSize(item);
+    // 如果 item 大小超过缓存最大值，直接丢弃
     if (itemSize >= maxSize) {
       onItemEvicted(key, item);
       return null;
     }
 
     if (item != null) {
+      // 更新当前缓存大小
       currentSize += itemSize;
     }
     @Nullable Entry<Y> old = cache.put(key, item == null ? null : new Entry<>(item, itemSize));
     if (old != null) {
+      // 如果 old 数据不为空
+      // 更新缓存大小
       currentSize -= old.size;
 
       if (!old.value.equals(item)) {
         onItemEvicted(key, old.value);
       }
     }
+    // 计算是否达到缓存上限，达到上限后移除最久的缓存，直到没有超过上限为止。
     evict();
 
     return old != null ? old.value : null;
@@ -179,6 +185,7 @@ public class LruCache<T, Y> {
   protected synchronized void trimToSize(long size) {
     Map.Entry<T, Entry<Y>> last;
     Iterator<Map.Entry<T, Entry<Y>>> cacheIterator;
+    // 如果当前内存占用大于目标值，开始遍历 cache
     while (currentSize > size) {
       cacheIterator = cache.entrySet().iterator();
       last = cacheIterator.next();

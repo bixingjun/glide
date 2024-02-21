@@ -111,6 +111,7 @@ public class ThumbnailRequestCoordinator implements RequestCoordinator, Request 
   @Override
   public void onRequestFailed(Request request) {
     synchronized (requestLock) {
+      //当 thumb 请求失败了，也是简单更新状态；full 请求失败了，更新 状态，同时通知 parent。
       if (!request.equals(full)) {
         thumbState = RequestState.FAILED;
         return;
@@ -138,10 +139,12 @@ public class ThumbnailRequestCoordinator implements RequestCoordinator, Request 
       try {
         // If the request has completed previously, there's no need to restart both the full and the
         // thumb, we can just restart the full.
+        // 如果 full 请求没有完成，同时 thumb 也没有在请求中，触发 thumb 请求。
         if (fullState != RequestState.SUCCESS && thumbState != RequestState.RUNNING) {
           thumbState = RequestState.RUNNING;
           thumb.begin();
         }
+        /// 如果 full 没有在请求中，触发 full 的请求。
         if (isRunningDuringBegin && fullState != RequestState.RUNNING) {
           fullState = RequestState.RUNNING;
           full.begin();

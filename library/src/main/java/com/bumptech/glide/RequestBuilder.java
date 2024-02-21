@@ -834,27 +834,23 @@ public class RequestBuilder<TranscodeType> extends BaseRequestOptions<RequestBui
     if (!isModelSet) {
       throw new IllegalArgumentException("You must call #load() before calling #into()");
     }
-
+    // 构建 Request
     Request request = buildRequest(target, targetListener, options, callbackExecutor);
-
+    // 获取上次的 Request
     Request previous = target.getRequest();
+    // 如果上次的 Request 和 当前的请求一致，直接开始上次的请求
     if (request.isEquivalentTo(previous)
         && !isSkipMemoryCacheWithCompletePreviousRequest(options, previous)) {
-      // If the request is completed, beginning again will ensure the result is re-delivered,
-      // triggering RequestListeners and Targets. If the request is failed, beginning again will
-      // restart the request, giving it another chance to complete. If the request is already
-      // running, we can let it continue running without interruption.
       if (!Preconditions.checkNotNull(previous).isRunning()) {
-        // Use the previous request rather than the new one to allow for optimizations like skipping
-        // setting placeholders, tracking and un-tracking Targets, and obtaining View dimensions
-        // that are done in the individual Request.
         previous.begin();
       }
       return target;
     }
-
+    // 清除 Target 中上次的请求。
     requestManager.clear(target);
+    // 将当前的 Request 设置到 Target 中。 Request 其实就是被添加到 View 的 tag 上，对应的 tagId 是 R.id.glide_custom_view_target_tag。
     target.setRequest(request);
+    // 将 target 和 request 通知 RequestManager
     requestManager.track(target, request);
 
     return target;
@@ -882,16 +878,17 @@ public class RequestBuilder<TranscodeType> extends BaseRequestOptions<RequestBui
    */
   @NonNull
   public ViewTarget<ImageView, TranscodeType> into(@NonNull ImageView view) {
+    // 校验必须在主线程
     Util.assertMainThread();
     Preconditions.checkNotNull(view);
 
     BaseRequestOptions<?> requestOptions = this;
+    // 如果没有设置图片的裁剪方式，根据 ImageView 的 ScaleType 来计算。
+    //当您使用 RequestOptions 对象构建图片加载请求时，可以通过设置不同的图像转换选项来对加载的图片进行转换，例如裁剪、圆角、变换等操作。
+    // isTransformationSet() 方法用于检查是否已经设置了这些图像转换选项。
     if (!requestOptions.isTransformationSet()
         && requestOptions.isTransformationAllowed()
         && view.getScaleType() != null) {
-      // Clone in this method so that if we use this RequestBuilder to load into a View and then
-      // into a different target, we don't retain the transformation applied based on the previous
-      // View's scale type.
       switch (view.getScaleType()) {
         case CENTER_CROP:
           requestOptions = requestOptions.clone().optionalCenterCrop();
@@ -915,9 +912,11 @@ public class RequestBuilder<TranscodeType> extends BaseRequestOptions<RequestBui
     }
 
     return into(
+        // 将 ImageView 封装成 Target
         glideContext.buildImageViewTarget(view, transcodeClass),
         /* targetListener= */ null,
         requestOptions,
+        // 回调线程设置成主线程
         Executors.mainThreadExecutor());
   }
 
@@ -1098,6 +1097,7 @@ public class RequestBuilder<TranscodeType> extends BaseRequestOptions<RequestBui
 
     // Build the ErrorRequestCoordinator first if necessary so we can update parentCoordinator.
     ErrorRequestCoordinator errorRequestCoordinator = null;
+    // 如果有 ErrorBuilder，构建一个 ErrorRequestCoordinator，同时它作为 parentCoordinator
     if (errorBuilder != null) {
       errorRequestCoordinator = new ErrorRequestCoordinator(requestLock, parentCoordinator);
       parentCoordinator = errorRequestCoordinator;
@@ -1154,6 +1154,8 @@ public class RequestBuilder<TranscodeType> extends BaseRequestOptions<RequestBui
       int overrideHeight,
       BaseRequestOptions<?> requestOptions,
       Executor callbackExecutor) {
+
+    //thumbnailBuilder() 是 RequestOptions 类中的一个方法，用于设置加载缩略图的 RequestOptions 对象。通过 thumbnailBuilder() 方法，您可以为原始图片加载请求指定一个用于加载缩略图的 RequestOptions 对象。
     if (thumbnailBuilder != null) {
       // Recursive case: contains a potentially recursive thumbnail request builder.
       if (isThumbnailBuilt) {
@@ -1165,8 +1167,7 @@ public class RequestBuilder<TranscodeType> extends BaseRequestOptions<RequestBui
       TransitionOptions<?, ? super TranscodeType> thumbTransitionOptions =
           thumbnailBuilder.transitionOptions;
 
-      // Apply our transition by default to thumbnail requests but avoid overriding custom options
-      // that may have been applied on the thumbnail request explicitly.
+      // 将我们的过渡默认应用于缩略图请求，但避免覆盖可能已显式应用于缩略图请求的自定义选项。
       if (thumbnailBuilder.isDefaultTransitionOptionsSet) {
         thumbTransitionOptions = transitionOptions;
       }
@@ -1184,6 +1185,7 @@ public class RequestBuilder<TranscodeType> extends BaseRequestOptions<RequestBui
         thumbOverrideHeight = requestOptions.getOverrideHeight();
       }
 
+      // 创建一个 ThumbnailRequestCoordinator 对象
       ThumbnailRequestCoordinator coordinator =
           new ThumbnailRequestCoordinator(requestLock, parentCoordinator);
       Request fullRequest =
@@ -1217,6 +1219,7 @@ public class RequestBuilder<TranscodeType> extends BaseRequestOptions<RequestBui
       return coordinator;
     } else if (thumbSizeMultiplier != null) {
       // Base case: thumbnail multiplier generates a thumbnail request, but cannot recurse.
+      //在 Glide 图片加载库中，thumbSizeMultiplier() 是 RequestOptions 类中的一个方法，用于设置缩略图的大小倍数 例子：通过 thumbSizeMultiplier(0.5f) 方法将缩略图的大小设置为原始图片的一半大小。然后将这个 RequestOptions 对象应用到 Glide 的图片加载请求中。
       ThumbnailRequestCoordinator coordinator =
           new ThumbnailRequestCoordinator(requestLock, parentCoordinator);
       Request fullRequest =

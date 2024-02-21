@@ -77,12 +77,15 @@ public class SizeConfigStrategy implements LruPoolStrategy {
   @Nullable
   public Bitmap get(int width, int height, Bitmap.Config config) {
     int size = Util.getBitmapByteSize(width, height, config);
+    // 计算出最优的 key
     Key bestKey = findBestKey(size, config);
-
+    // 调用 GroupedLinkedMap#get() 方法获取 Bitmap
     Bitmap result = groupedMap.get(bestKey);
     if (result != null) {
       // Decrement must be called before reconfigure.
+      // 更新 Bitmap Size 的记录
       decrementBitmapOfSize(bestKey.size, result);
+      // 重新设置 Bitmap 中的尺寸和配置
       result.reconfigure(width, height, config);
     }
     return result;

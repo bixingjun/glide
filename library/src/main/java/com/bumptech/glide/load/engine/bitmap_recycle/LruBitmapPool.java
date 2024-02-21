@@ -154,8 +154,10 @@ public class LruBitmapPool implements BitmapPool {
       // Bitmaps in the pool contain random data that in some cases must be cleared for an image
       // to be rendered correctly. we shouldn't force all consumers to independently erase the
       // contents individually, so we do so here. See issue #131.
+      // 擦除原有的 Bitmap 中的数据
       result.eraseColor(Color.TRANSPARENT);
     } else {
+      // 创建一个新的空白的 Bitmap
       result = createBitmap(width, height, config);
     }
 
@@ -199,14 +201,19 @@ public class LruBitmapPool implements BitmapPool {
     assertNotHardwareConfig(config);
     // Config will be null for non public config types, which can lead to transformations naively
     // passing in null as the requested config here. See issue #194.
+
+    // 从 SizeConfigStrategy 中获取 Bitmap 缓存
     final Bitmap result = strategy.get(width, height, config != null ? config : DEFAULT_CONFIG);
     if (result == null) {
       if (Log.isLoggable(TAG, Log.DEBUG)) {
         Log.d(TAG, "Missing bitmap=" + strategy.logBitmap(width, height, config));
       }
+      // 记录未命中的数量
       misses++;
     } else {
+      // 记录命中的数量
       hits++;
+      // 更新缓存大小
       currentSize -= strategy.getSize(result);
       tracker.remove(result);
       normalize(result);

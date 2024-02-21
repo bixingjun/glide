@@ -58,19 +58,27 @@ public final class LruArrayPool implements ArrayPool {
     @SuppressWarnings("unchecked")
     Class<T> arrayClass = (Class<T>) array.getClass();
 
+    // 获取数组的 Adapter 对象。
     ArrayAdapterInterface<T> arrayAdapter = getAdapterFromType(arrayClass);
+    // 获取数组的长度
     int size = arrayAdapter.getArrayLength(array);
+    // 计算数组的大小
     int arrayBytes = size * arrayAdapter.getElementSizeInBytes();
+    // 如果数组过大，跳过缓存
     if (!isSmallEnoughForReuse(arrayBytes)) {
       return;
     }
+    // 计算 key
     Key key = keyPool.get(size, arrayClass);
-
+    // 同样是用 GroupedLinkedMap 来存储
     groupedMap.put(key, array);
+    // 计算当前类型的数组的缓存数量
     NavigableMap<Integer, Integer> sizes = getSizesForAdapter(arrayClass);
     Integer current = sizes.get(key.size);
     sizes.put(key.size, current == null ? 1 : current + 1);
+    // 更新缓存占用大小
     currentSize += arrayBytes;
+    // 计算是否达到缓存上限，达到上限后移除最久的缓存，直到没有超过上限为止。
     evict();
   }
 

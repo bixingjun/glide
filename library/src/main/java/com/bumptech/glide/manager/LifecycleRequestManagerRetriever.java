@@ -38,6 +38,9 @@ final class LifecycleRequestManagerRetriever {
     Util.assertMainThread();
     RequestManager result = getOnly(lifecycle);
     if (result == null) {
+      // 缓存为空，创建一个新的 RequestManager
+
+      // 用 LifecycleLifecycle 来封装 androdix 中的 Lifecycle
       LifecycleLifecycle glideLifecycle = new LifecycleLifecycle(lifecycle);
       result =
           factory.build(
@@ -45,7 +48,9 @@ final class LifecycleRequestManagerRetriever {
               glideLifecycle,
               new SupportRequestManagerTreeNode(childFragmentManager),
               context);
+      // 添加内存缓存
       lifecycleToRequestManager.put(lifecycle, result);
+
       glideLifecycle.addListener(
           new LifecycleListener() {
             @Override
@@ -84,6 +89,7 @@ final class LifecycleRequestManagerRetriever {
       return result;
     }
 
+    //通过 FragmentManager 来递归遍历所有的 Fragment 的 RequestManager，然后返回给 getDescendants() 方法。
     private void getChildFragmentsRecursive(
         FragmentManager fragmentManager, Set<RequestManager> requestManagers) {
       List<Fragment> children = fragmentManager.getFragments();

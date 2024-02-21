@@ -126,6 +126,7 @@ public class RequestManager
     this.requestTracker = requestTracker;
     this.context = context;
 
+    // 添加对网络的监听
     connectivityMonitor =
         factory.build(
             context.getApplicationContext(),
@@ -133,6 +134,7 @@ public class RequestManager
 
     // Order matters, this might be unregistered by teh listeners below, so we need to be sure to
     // register first to prevent both assertions and memory leaks.
+    // 通知 Glide 有新的 RequestManager.
     glide.registerRequestManager(this);
 
     // If we're the application level request manager, we may be created on a background thread.
@@ -140,14 +142,19 @@ public class RequestManager
     // issue by delaying adding ourselves as a lifecycle listener by posting to the main thread.
     // This should be entirely safe.
     if (Util.isOnBackgroundThread()) {
+      // 如果是非 UI 线程，需要在 UI 线程添加生命周期监听
       Util.postOnUiThread(addSelfToLifecycle);
     } else {
+      // 添加生命周期监听
       lifecycle.addListener(this);
     }
+    // 将生命周期也下发至网络监听
     lifecycle.addListener(connectivityMonitor);
 
+    // 获取请求监听
     defaultRequestListeners =
         new CopyOnWriteArrayList<>(glide.getGlideContext().getDefaultRequestListeners());
+    // 获取默认的请求配置
     setRequestOptions(glide.getGlideContext().getDefaultRequestOptions());
   }
 
@@ -361,7 +368,9 @@ public class RequestManager
    */
   @Override
   public synchronized void onStart() {
+    // 恢复暂停的请求
     resumeRequests();
+    // target 执行 onStart()
     targetTracker.onStart();
   }
 
@@ -372,10 +381,13 @@ public class RequestManager
    */
   @Override
   public synchronized void onStop() {
+    // target 执行 onStop()
     targetTracker.onStop();
     if (clearOnStop) {
+      // 清除请求
       clearRequests();
     } else {
+      // 暂停请求
       pauseRequests();
     }
   }
@@ -386,12 +398,17 @@ public class RequestManager
    */
   @Override
   public synchronized void onDestroy() {
+    // target 执行 onDestroy()
     targetTracker.onDestroy();
+    // 清除请求
     clearRequests();
     requestTracker.clearRequests();
+    // 移除 RequestManager 对生命周期监听
     lifecycle.removeListener(this);
+    // 移除 ConnectivityMonitor 对生命周期的监听
     lifecycle.removeListener(connectivityMonitor);
     Util.removeCallbacksOnUiThread(addSelfToLifecycle);
+    // 通知 Glide 移除 RequestManager
     glide.unregisterRequestManager(this);
   }
 
