@@ -252,9 +252,11 @@ public final class SingleRequest<R> implements Request, SizeReadyCallback, Resou
 
       cookie = GlideTrace.beginSectionAsync(TAG);
       status = Status.WAITING_FOR_SIZE;
+      // 如果当前的尺寸合法
       if (Util.isValidDimensions(overrideWidth, overrideHeight)) {
         onSizeReady(overrideWidth, overrideHeight);
       } else {
+        // 等待 target （ImageView）完成尺寸的测量。
         target.getSize(this);
       }
 

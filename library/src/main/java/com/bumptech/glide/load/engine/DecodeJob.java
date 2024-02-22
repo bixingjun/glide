@@ -351,15 +351,18 @@ class DecodeJob<R>
   private Stage getNextStage(Stage current) {
     switch (current) {
       case INITIALIZE:
+        // 判断当前是否支持 ResourceCache，如果支持下一个状态就是 RESOURCE_CACHE，如果不支持就重新计算
         return diskCacheStrategy.decodeCachedResource()
             ? Stage.RESOURCE_CACHE
             : getNextStage(Stage.RESOURCE_CACHE);
       case RESOURCE_CACHE:
+        // 判断是否支持 DataCache，如果支持下一个状态就是 RESOURCE_CACHE，如果不支持重新计算。
         return diskCacheStrategy.decodeCachedData()
             ? Stage.DATA_CACHE
             : getNextStage(Stage.DATA_CACHE);
       case DATA_CACHE:
         // Skip loading from source if the user opted to only retrieve the resource from cache.
+        // 判断是不是只能使用磁盘缓存，如果是下个状态就是 FINISHED，反之就是 SOURCE。
         return onlyRetrieveFromCache ? Stage.FINISHED : Stage.SOURCE;
       case SOURCE:
       case FINISHED:
@@ -390,12 +393,13 @@ class DecodeJob<R>
     this.currentDataSource = dataSource;
     this.currentAttemptingKey = attemptedKey;
     this.isLoadingFromAlternateCacheKey = sourceKey != decodeHelper.getCacheKeys().get(0);
-
+    // 只有执行了网络加载才会切线程，缓存不用切线程
     if (Thread.currentThread() != currentThread) {
       reschedule(RunReason.DECODE_DATA);
     } else {
       GlideTrace.beginSection("DecodeJob.decodeFromRetrievedData");
       try {
+        // 缓存的代码执行这里
         decodeFromRetrievedData();
       } finally {
         GlideTrace.endSection();
@@ -431,19 +435,21 @@ class DecodeJob<R>
     }
     Resource<R> resource = null;
     try {
+      // 解码数据
       resource = decodeFromData(currentFetcher, currentData, currentDataSource);
     } catch (GlideException e) {
       e.setLoggingDetails(currentAttemptingKey, currentDataSource);
       throwables.add(e);
     }
     if (resource != null) {
+      // 通知解码成功
       notifyEncodeAndRelease(resource, currentDataSource, isLoadingFromAlternateCacheKey);
     } else {
       runGenerators();
     }
   }
 
-  private void notifyEncodeAndRelease(
+  private void  notifyEncodeAndRelease(
       Resource<R> resource, DataSource dataSource, boolean isLoadedFromAlternateCacheKey) {
     GlideTrace.beginSection("DecodeJob.notifyEncodeAndRelease");
     try {
@@ -765,4 +771,10 @@ class DecodeJob<R>
     /** No more viable stages. */
     FINISHED,
   }
+  //  RESOUCE_CACHE
+  //  缓存处理过的原来的网络图片，比如图片的尺寸等等优化过，也可能根据 ScaleType 裁剪过。
+  //  DATA_CACHE
+  //  缓存未经过原来处理过的网络图片，也就是图片原来是什么样子，缓存就是什么样子。
+  //  SOURCE
+  //  通过网络去获取图片资源。
 }

@@ -372,6 +372,7 @@ public abstract class ViewTarget<T extends View, Z> extends BaseTarget<Z> {
     void getSize(@NonNull SizeReadyCallback cb) {
       int currentWidth = getTargetWidth();
       int currentHeight = getTargetHeight();
+      // 如果当前 View 的尺寸合法，直接回调成功
       if (isViewStateAndSizeValid(currentWidth, currentHeight)) {
         cb.onSizeReady(currentWidth, currentHeight);
         return;
@@ -433,46 +434,34 @@ public abstract class ViewTarget<T extends View, Z> extends BaseTarget<Z> {
     }
 
     private int getTargetDimen(int viewSize, int paramSize, int paddingSize) {
-      // We consider the View state as valid if the View has non-null layout params and a non-zero
-      // layout params width and height. This is imperfect. We're making an assumption that View
-      // parents will obey their child's layout parameters, which isn't always the case.
+
       int adjustedParamSize = paramSize - paddingSize;
       if (adjustedParamSize > 0) {
         return adjustedParamSize;
       }
 
-      // Since we always prefer layout parameters with fixed sizes, even if waitForLayout is true,
-      // we might as well ignore it and just return the layout parameters above if we have them.
-      // Otherwise we should wait for a layout pass before checking the View's dimensions.
+      //因为我们总是喜欢固定大小的布局参数，即使waitForLayout为true，
+      // 我们也可以忽略它，如果有的话，只返回上面的布局参数。
+      // 否则，我们应该等待布局通过后再检查视图的尺寸。
       if (waitForLayout && view.isLayoutRequested()) {
         return PENDING_SIZE;
       }
 
-      // We also consider the View state valid if the View has a non-zero width and height. This
-      // means that the View has gone through at least one layout pass. It does not mean the Views
-      // width and height are from the current layout pass. For example, if a View is re-used in
-      // RecyclerView or ListView, this width/height may be from an old position. In some cases
-      // the dimensions of the View at the old position may be different than the dimensions of the
-      // View in the new position because the LayoutManager/ViewParent can arbitrarily decide to
-      // change them. Nevertheless, in most cases this should be a reasonable choice.
+      //如果视图的宽度和高度非零，我们也认为视图状态是有效的。这意味着视图至少经过了一次布局。
+      // 这并不意味着视图的宽度和高度来自于当前的布局。例如，如果一个视图在RecyclerView或ListView中被重用，
+      // 那么这个宽度/高度可能来自旧的位置。在某些情况下，视图在旧位置的尺寸可能不同于视图在新位置的尺寸，
+      // 因为LayoutManager/ViewParent可以任意决定改变它们。然而，在大多数情况下，这应该是一个合理的选择。
       int adjustedViewSize = viewSize - paddingSize;
       if (adjustedViewSize > 0) {
         return adjustedViewSize;
       }
 
-      // Finally we consider the view valid if the layout parameter size is set to wrap_content.
-      // It's difficult for Glide to figure out what to do here. Although Target.SIZE_ORIGINAL is a
-      // coherent choice, it's extremely dangerous because original images may be much too large to
-      // fit in memory or so large that only a couple can fit in memory, causing OOMs. If users want
-      // the original image, they can always use .override(Target.SIZE_ORIGINAL). Since wrap_content
-      // may never resolve to a real size unless we load something, we aim for a square whose length
-      // is the largest screen size. That way we're loading something and that something has some
-      // hope of being downsampled to a size that the device can support. We also log a warning that
-      // tries to explain what Glide is doing and why some alternatives are preferable.
-      // Since WRAP_CONTENT is sometimes used as a default layout parameter, we always wait for
-      // layout to complete before using this fallback parameter (ConstraintLayout among others).
       if (!view.isLayoutRequested() && paramSize == LayoutParams.WRAP_CONTENT) {
         if (Log.isLoggable(TAG, Log.INFO)) {
+          //Glide处理LayoutParams。WRAP_CONTENT作为请求获取与该设备屏幕尺寸大小相同的图像。
+          // 如果您希望加载原始图像，并接受相应的内存成本和OOMs(取决于输入大小)，
+          // 请使用override(Target.SIZE_ORIGINAL)。否则，使用LayoutParams。将layout_width和layout_height设置为固定尺寸，
+          // 或者使用.override()设置固定尺寸。
           Log.i(
               TAG,
               "Glide treats LayoutParams.WRAP_CONTENT as a request for an image the size of this"

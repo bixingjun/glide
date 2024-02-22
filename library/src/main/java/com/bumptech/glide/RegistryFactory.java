@@ -149,6 +149,7 @@ final class RegistryFactory {
 
     ByteBufferGifDecoder byteBufferGifDecoder =
         new ByteBufferGifDecoder(context, imageHeaderParsers, bitmapPool, arrayPool);
+
     ResourceDecoder<ParcelFileDescriptor, Bitmap> parcelFileDescriptorVideoDecoder =
         VideoDecoder.parcel(bitmapPool);
 
@@ -197,6 +198,11 @@ final class RegistryFactory {
         .append(Registry.BUCKET_BITMAP, ByteBuffer.class, Bitmap.class, byteBufferBitmapDecoder)
         .append(Registry.BUCKET_BITMAP, InputStream.class, Bitmap.class, streamBitmapDecoder);
 
+    //ParcelFileDescriptorRewinder.isSupported() 是 Glide 图片加载库中的一个方法，用于检查当前环境是否支持使用 ParcelFileDescriptor 进行图像加载的操作。
+    //
+    //在 Android 开发中，ParcelFileDescriptor 是一种用于传输文件描述符的类，通常用于在应用程序之间传递文件描述符或处理文件 I/O 操作。在 Glide 中，ParcelFileDescriptorRewinder 是用于处理图像加载的一种机制，特别是在某些情况下可能需要从 ParcelFileDescriptor 中加载图像数据。
+    //
+    //通过调用 ParcelFileDescriptorRewinder.isSupported() 方法，Glide 可以检查当前环境是否支持使用 ParcelFileDescriptor 进行图像加载。这可以帮助 Glide 在适当的情况下选择合适的加载方式，以确保图像加载的顺利进行。
     if (ParcelFileDescriptorRewinder.isSupported()) {
       registry.append(
           Registry.BUCKET_BITMAP,

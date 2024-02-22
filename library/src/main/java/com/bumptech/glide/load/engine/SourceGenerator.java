@@ -53,25 +53,18 @@ class SourceGenerator implements DataFetcherGenerator, DataFetcherGenerator.Fetc
       Object data = dataToCache;
       dataToCache = null;
       try {
+        // 执行缓存 DataCache 操作。
         boolean isDataInCache = cacheData(data);
-        // If we failed to write the data to cache, the cacheData method will try to decode the
-        // original data directly instead of going through the disk cache. Since cacheData has
-        // already called our callback at this point, there's nothing more to do but return.
         if (!isDataInCache) {
           return true;
         }
-        // If we were able to write the data to cache successfully, we now need to proceed to call
-        // the sourceCacheGenerator below to load the data from cache.
       } catch (IOException e) {
-        // An IOException means we weren't able to write data to cache or we weren't able to rewind
-        // it after a disk cache write failed. In either case we can just move on and try the next
-        // fetch below.
         if (Log.isLoggable(TAG, Log.DEBUG)) {
           Log.d(TAG, "Failed to properly rewind or write data to cache", e);
         }
       }
     }
-
+    // 缓存成功后会调用 DataCacheGenerator#startNext() 方法
     if (sourceCacheGenerator != null && sourceCacheGenerator.startNext()) {
       return true;
     }

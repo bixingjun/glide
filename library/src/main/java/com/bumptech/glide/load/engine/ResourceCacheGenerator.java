@@ -44,11 +44,14 @@ class ResourceCacheGenerator implements DataFetcherGenerator, DataFetcher.DataCa
   public boolean startNext() {
     GlideTrace.beginSection("ResourceCacheGenerator.startNext");
     try {
+      // 获取所有的支持的 ModelLoader 中的 LoadData 对象的 Keys。
       List<Key> sourceIds = helper.getCacheKeys();
       if (sourceIds.isEmpty()) {
         return false;
       }
+      // 获取所有的可用的 Transcoder 转换后的数据的 Class 对象（我们的 demo 中是 Drawable）
       List<Class<?>> resourceClasses = helper.getRegisteredResourceClasses();
+      // 如果没有可用的 Transcoder 直接抛出异常。
       if (resourceClasses.isEmpty()) {
         if (File.class.equals(helper.getTranscodeClass())) {
           return false;
@@ -59,6 +62,7 @@ class ResourceCacheGenerator implements DataFetcherGenerator, DataFetcher.DataCa
                 + " to "
                 + helper.getTranscodeClass());
       }
+      // 遍历所有的 ModelLoader 和 ResourceClasses 对象生成的 key，通过这个 key 去查找到一个可用的缓存文件对应的 ModelLoader。
       while (modelLoaders == null || !hasNextModelLoader()) {
         resourceClassIndex++;
         if (resourceClassIndex >= resourceClasses.size()) {
@@ -68,13 +72,16 @@ class ResourceCacheGenerator implements DataFetcherGenerator, DataFetcher.DataCa
           }
           resourceClassIndex = 0;
         }
-
+        // 获取对应的 ModelLoader 中的 Key
         Key sourceId = sourceIds.get(sourceIdIndex);
+        // 获取对应 Transcoder 输出的 class
         Class<?> resourceClass = resourceClasses.get(resourceClassIndex);
+        // 获取裁剪方式的 Transformation
         Transformation<?> transformation = helper.getTransformation(resourceClass);
         // PMD.AvoidInstantiatingObjectsInLoops Each iteration is comparatively expensive anyway,
         // we only run until the first one succeeds, the loop runs for only a limited
         // number of iterations on the order of 10-20 in the worst case.
+        // 通过上面的参数生成各种 Key。
         currentKey =
             new ResourceCacheKey( // NOPMD AvoidInstantiatingObjectsInLoops
                 helper.getArrayPool(),
@@ -85,8 +92,10 @@ class ResourceCacheGenerator implements DataFetcherGenerator, DataFetcher.DataCa
                 transformation,
                 resourceClass,
                 helper.getOptions());
+        // 通过生成的 Key 从 DiskLruCache 中去查找缓存文件.
         cacheFile = helper.getDiskCache().get(currentKey);
         if (cacheFile != null) {
+          // 缓存文件不为空，去查找能够处理 File 类型的 ModelLoaders。
           sourceKey = sourceId;
           modelLoaders = helper.getModelLoaders(cacheFile);
           modelLoaderIndex = 0;
@@ -95,6 +104,7 @@ class ResourceCacheGenerator implements DataFetcherGenerator, DataFetcher.DataCa
 
       loadData = null;
       boolean started = false;
+      // 遍历找到的所有的 ModelLoader，找到一个可用的去加载 File 缓存文件。
       while (!started && hasNextModelLoader()) {
         ModelLoader<File, ?> modelLoader = modelLoaders.get(modelLoaderIndex++);
         loadData =
@@ -102,11 +112,17 @@ class ResourceCacheGenerator implements DataFetcherGenerator, DataFetcher.DataCa
                 cacheFile, helper.getWidth(), helper.getHeight(), helper.getOptions());
         if (loadData != null && helper.hasLoadPath(loadData.fetcher.getDataClass())) {
           started = true;
+          //通过 ModelLoader 中 loadData 中的 fetcher 去加载缓存的 File
           loadData.fetcher.loadData(helper.getPriority(), this);
         }
       }
-
+      // 最后的返回结果表示是否拿到可用的缓存.
       return started;
+
+      // 遍历所有的可用的 ModelLoader 和 Trascoder 最后的输出 Resource 的 Class 对象生成的 Key，
+      // 然后通过这个 Key 从本地缓存中去查找对应的文件，如果有查找到对应的文件，然后去查找处理 File 类型的
+      // ModelLoader，然后通过 ModelLoader 去加载对应的 File。
+
     } finally {
       GlideTrace.endSection();
     }

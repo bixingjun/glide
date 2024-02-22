@@ -1,0 +1,53 @@
+举一个 journal 缓存文件的例子。
+
+libcore.io.DiskLruCache
+1
+100
+2
+
+CLEAN 3400330d1dfc7f3f7f4b8d4d803dfcf6 832 21054
+DIRTY 335c4c6028171cfddfbaae1a9c313c52
+CLEAN 335c4c6028171cfddfbaae1a9c313c52 3934 2342
+REMOVE 335c4c6028171cfddfbaae1a9c313c52
+DIRTY 1ab96a171faeeee38496d8b330771a7a
+CLEAN 1ab96a171faeeee38496d8b330771a7a 1600 234
+READ 335c4c6028171cfddfbaae1a9c313c52
+READ 3400330d1dfc7f3f7f4b8d4d803dfcf6
+
+journal 文件的头部：
+
+libcore.io.DiskLruCache：用来标识 journal 文件。
+1：表示缓存协议的版本，我们目前使用的版本都是 1。
+100：表示应用的版本。
+2：表示每一个缓存的 Key 对应多少个缓存文件，例子中是 2 个，但是 Glide 使用这个缓存时都是 1 个。
+
+我们再来看看 journal 文件中的内容，他的格式都是状态 + Key 生成的 Hash 256 值（CLEAN 中还会接多个数字，后续会讲）。再来讲讲不同的状态表示缓存的什么意思：
+
+
+CLEAN
+表示当前的缓存可以正常读取，如果一个 Key 对应多少缓存文件，后续就有多少个数字，比如我们的是 2，后续就还跟了两个数字，他们表示缓存文件的大小。
+以下面为例：
+CLEAN 3400330d1dfc7f3f7f4b8d4d803dfcf6 832 21054
+上诉的缓存文件就是 3400330d1dfc7f3f7f4b8d4d803dfcf6.0 和 3400330d1dfc7f3f7f4b8d4d803dfcf6.1 他们的大小依次是 832 bytes 和 21054 bytes。
+
+
+DIRTY
+表示当前的 Key 对应的缓存文件正在被写入，这个状态时不允许读取，不允许再写入，只有当写入完成后状态才会被修改成 CLEAN。
+
+
+REMOVE
+表示当前的 Key 对应的缓存文件已经被删除。
+
+
+READ
+表示有地方正在读取缓存，可以同时有多个地方读取。
+
+
+当你理解了 journal 文件后，理解 DiskLruCache 就简单多了，在 DiskLruCache 初始化的时候会去检查 journal 文件，
+如果没有就创建一个新的，如果有旧的，就去去读它，其中读取到的缓存的状态保存到 Entry 对象中，
+可以理解为 Entry 就是 journal 反序列化后保存到内存中的信息。（达到某些条件后，还会通过 Entry 的信息更新 journal 文件的信息）
+读取缓存：读取缓存比较简单，Entry 的对应的状态必须是 CLEAN，将 journal 文件中添加一条 READ 状态的数据，然后将 Entry 中对应的文件返回，同一个缓存可以同时被多个地方读取。
+写入缓存：只有当当前的缓存正在被写入时不能再被写入，其他的情况都能够写入，写入时的状态会被修改成 DIRTY，修改完成后状态会被修改成 CLEAN 状态，
+如果我们在 journal 发现了 DIRTY 的状态，就表示正在写入或者上次写入失败了。
+
+

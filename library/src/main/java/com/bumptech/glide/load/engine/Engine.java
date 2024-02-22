@@ -187,6 +187,7 @@ public class Engine
 
     EngineResource<?> memoryResource;
     synchronized (this) {
+      // 先尝试从内存缓存中加载
       memoryResource = loadFromMemory(key, isMemoryCacheable, startTime);
 
       if (memoryResource == null) {
@@ -298,7 +299,7 @@ public class Engine
     if (!isMemoryCacheable) {
       return null;
     }
-
+    // 加载存活的资源 资源释放会放到Lru缓存
     EngineResource<?> active = loadFromActiveResources(key);
     if (active != null) {
       if (VERBOSE_IS_LOGGABLE) {
@@ -306,7 +307,7 @@ public class Engine
       }
       return active;
     }
-
+    //从Lru拿到资源会移除会放到上面的活动缓存
     EngineResource<?> cached = loadFromCache(key);
     if (cached != null) {
       if (VERBOSE_IS_LOGGABLE) {

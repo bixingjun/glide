@@ -268,6 +268,11 @@ class EngineJob<R> implements DecodeJob.Callback<R>, Poolable {
   @Synthetic
   synchronized void incrementPendingCallbacks(int count) {
     Preconditions.checkArgument(isDone(), "Not yet complete!");
+    //pendingCallbacks.getAndAdd(count): 这段代码首先对 pendingCallbacks 进行了原子性的获取并增加操作。
+    // 具体来说，它会获取 pendingCallbacks 的当前值，并将其增加 count。这个操作通常用于实现计数器的功能，
+    // 可能是为了跟踪某个操作的进行次数。
+    //== 0: 接着判断上面的操作结果是否等于 0。如果之前 pendingCallbacks 的值为 0，
+    // 说明在增加 count 之前 pendingCallbacks 的值就是 0。
     if (pendingCallbacks.getAndAdd(count) == 0 && engineResource != null) {
       engineResource.acquire();
     }
