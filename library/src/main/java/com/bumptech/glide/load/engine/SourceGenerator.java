@@ -125,13 +125,20 @@ class SourceGenerator implements DataFetcherGenerator, DataFetcherGenerator.Fetc
     long startTime = LogTime.getLogTime();
     boolean isLoadingFromSourceData = false;
     try {
+      // 用 DataRewinder 来封装对应的 data，使其可以重复的读（也就是让 InputStream 可以重复的读）
       DataRewinder<Object> rewinder = helper.getRewinder(dataToCache);
+      // 重置 data。
       Object data = rewinder.rewindAndGet();
+      // 查找对应的 Encoder
       Encoder<Object> encoder = helper.getSourceEncoder(data);
+      // 构建用于写入文件缓存的 DataCacheWriter 对象。
       DataCacheWriter<Object> writer = new DataCacheWriter<>(encoder, data, helper.getOptions());
+      // 构建用于缓存的 DataCacheKey
       DataCacheKey newOriginalKey = new DataCacheKey(loadData.sourceKey, helper.getSignature());
       DiskCache diskCache = helper.getDiskCache();
+      // 写入缓存
       diskCache.put(newOriginalKey, writer);
+
       if (Log.isLoggable(TAG, Log.VERBOSE)) {
         Log.v(
             TAG,
@@ -145,9 +152,10 @@ class SourceGenerator implements DataFetcherGenerator, DataFetcherGenerator.Fetc
                 + ", duration: "
                 + LogTime.getElapsedMillis(startTime));
       }
-
+      // 写入后，判断是否已经写入成功
       if (diskCache.get(newOriginalKey) != null) {
         originalKey = newOriginalKey;
+        // 写入成功后构建一个 DataCacheGenerator 对象
         sourceCacheGenerator =
             new DataCacheGenerator(Collections.singletonList(loadData.sourceKey), helper, this);
         // We were able to write the data to cache.
@@ -166,6 +174,7 @@ class SourceGenerator implements DataFetcherGenerator, DataFetcherGenerator.Fetc
         }
 
         isLoadingFromSourceData = true;
+        // 如果缓存写入失败，就直接回调 DecodeJob。
         cb.onDataFetcherReady(
             loadData.sourceKey,
             rewinder.rewindAndGet(),

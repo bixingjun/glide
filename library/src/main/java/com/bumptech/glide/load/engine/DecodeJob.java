@@ -542,6 +542,9 @@ class DecodeJob<R>
     DataRewinder<Data> rewinder = glideContext.getRegistry().getRewinder(data);
     try {
       // ResourceType in DecodeCallback below is required for compilation to work with gradle.
+      //这里继续调用 LoadPath#load() 来完成解码。这里其实有两个过程，一个是 Decoder 的解码过程，然后是 Transcoder
+      // 将 Decoder 的结果转换成 Target 能够渲染的类型。其中 DecodeCallback 能够拦截处理 Decoder 返回的结果。
+      //
       return path.load(
           rewinder, options, width, height, new DecodeCallback<ResourceType>(dataSource));
     } finally {
@@ -579,7 +582,9 @@ class DecodeJob<R>
     Class<Z> resourceSubClass = (Class<Z>) decoded.get().getClass();
     Transformation<Z> appliedTransformation = null;
     Resource<Z> transformed = decoded;
+    //RESOURCE_DISK_CACHE 那么就不需要裁剪操作，因为 RESOURCE_DISK_CACHE 缓存中的数据已经做过裁剪操作了。如果需要处理 RESOURCE_DISK_CACHE 那么就会初始化 deferredEncodeManager。
     if (dataSource != DataSource.RESOURCE_DISK_CACHE) {
+      // 通过 Transformation 对尺寸和 ScaleType 的处理。
       appliedTransformation = decodeHelper.getTransformation(resourceSubClass);
       transformed = appliedTransformation.transform(glideContext, decoded, width, height);
     }
@@ -590,8 +595,11 @@ class DecodeJob<R>
 
     final EncodeStrategy encodeStrategy;
     final ResourceEncoder<Z> encoder;
+    // 判断是否允许 Resource Encoder
     if (decodeHelper.isResourceEncoderAvailable(transformed)) {
+      // 查找对应的 Encoder
       encoder = decodeHelper.getResultEncoder(transformed);
+      // 获取对应的 EncodeStrategy
       encodeStrategy = encoder.getEncodeStrategy(options);
     } else {
       encoder = null;
@@ -600,12 +608,14 @@ class DecodeJob<R>
 
     Resource<Z> result = transformed;
     boolean isFromAlternateCacheKey = !decodeHelper.isSourceKey(currentSourceKey);
+    // 判断是否允许 Resource Cache.
     if (diskCacheStrategy.isResourceCacheable(
         isFromAlternateCacheKey, dataSource, encodeStrategy)) {
       if (encoder == null) {
         throw new Registry.NoResultEncoderAvailableException(transformed.get().getClass());
       }
       final Key key;
+      // 根据 EncodeStrategy 来选择不同的缓存 Key
       switch (encodeStrategy) {
         case SOURCE:
           key = new DataCacheKey(currentSourceKey, signature);
@@ -627,6 +637,7 @@ class DecodeJob<R>
       }
 
       LockedResource<Z> lockedResult = LockedResource.obtain(transformed);
+      // 初始化 deferredEncodeManager。
       deferredEncodeManager.init(key, encoder, lockedResult);
       result = lockedResult;
     }

@@ -108,13 +108,12 @@ public class RequestTracker {
   public void resumeRequests() {
     isPaused = false;
     for (Request request : Util.getSnapshot(requests)) {
-      // We don't need to check for cleared here. Any explicit clear by a user will remove the
-      // Request from the tracker, so the only way we'd find a cleared request here is if we cleared
-      // it. As a result it should be safe for us to resume cleared requests.
+      // 如果 Request 没有在 Running 状态，调用对应的 begin() 方法
       if (!request.isComplete() && !request.isRunning()) {
         request.begin();
       }
     }
+    // 清除暂停的 Request 的列表
     pendingRequests.clear();
   }
 
