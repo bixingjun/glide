@@ -248,6 +248,7 @@ public class Engine
 
     EngineJob<?> current = jobs.get(key, onlyRetrieveFromCache);
     if (current != null) {
+      //从 map 集合中获取 EngineJob，如果不为空表示当前有正在执行的 EngineJob，添加回调并返回加载状态。
       current.addCallback(cb, callbackExecutor);
       if (VERBOSE_IS_LOGGABLE) {
         logWithTimeAndKey("Added to existing load", startTime, key);

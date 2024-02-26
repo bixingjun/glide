@@ -484,9 +484,9 @@ public final class Downsampler {
       }
       return;
     }
-
-    int orientedSourceWidth = sourceWidth;
-    int orientedSourceHeight = sourceHeight;
+    // 1 确认下采样策略
+    int orientedSourceWidth = sourceWidth;// 原始图片宽度
+    int orientedSourceHeight = sourceHeight;// 原始图片高度
     // If we're rotating the image +-90 degrees, we need to downsample accordingly so the image
     // width is decreased to near our target's height and the image height is decreased to near
     // our target width.
@@ -495,7 +495,7 @@ public final class Downsampler {
       orientedSourceWidth = sourceHeight;
       orientedSourceHeight = sourceWidth;
     }
-
+// 1.1 获取精确缩放因子（浮点型）
     final float exactScaleFactor =
         downsampleStrategy.getScaleFactor(
             orientedSourceWidth, orientedSourceHeight, targetWidth, targetHeight);
@@ -517,32 +517,34 @@ public final class Downsampler {
               + targetHeight
               + "]");
     }
-
+// 1.2 采样大小舍入规则
     SampleSizeRounding rounding =
         downsampleStrategy.getSampleSizeRounding(
             orientedSourceWidth, orientedSourceHeight, targetWidth, targetHeight);
     if (rounding == null) {
       throw new IllegalArgumentException("Cannot round with null rounding");
     }
+// 2 转换为整型的缩放因子
+    int outWidth = round(exactScaleFactor * orientedSourceWidth);// 按精确缩放因子缩放后的宽度
+    int outHeight = round(exactScaleFactor * orientedSourceHeight); // 按精确缩放因子缩放后的高度
 
-    int outWidth = round(exactScaleFactor * orientedSourceWidth);
-    int outHeight = round(exactScaleFactor * orientedSourceHeight);
-
-    int widthScaleFactor = orientedSourceWidth / outWidth;
-    int heightScaleFactor = orientedSourceHeight / outHeight;
+    int widthScaleFactor = orientedSourceWidth / outWidth;// 整型宽度缩放因子
+    int heightScaleFactor = orientedSourceHeight / outHeight; // 整型高度缩放因子
 
     // TODO: This isn't really right for both CenterOutside and CenterInside. Consider allowing
     // DownsampleStrategy to pick, or trying to do something more sophisticated like picking the
     // scale factor that leads to an exact match.
+    // 2.1 根据SampleSizeRounding选取合适的缩放因子
     int scaleFactor =
         rounding == SampleSizeRounding.MEMORY
             ? Math.max(widthScaleFactor, heightScaleFactor)
             : Math.min(widthScaleFactor, heightScaleFactor);
-
+    // 转换为2的次幂采样大小
     int powerOfTwoSampleSize;
     // BitmapFactory does not support downsampling wbmp files on platforms <= M. See b/27305903.
     if (Build.VERSION.SDK_INT <= 23
         && NO_DOWNSAMPLE_PRE_N_MIME_TYPES.contains(options.outMimeType)) {
+      // 部分格式不支持
       powerOfTwoSampleSize = 1;
     } else {
       powerOfTwoSampleSize = Math.max(1, Integer.highestOneBit(scaleFactor));

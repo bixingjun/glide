@@ -1156,6 +1156,7 @@ public class RequestBuilder<TranscodeType> extends BaseRequestOptions<RequestBui
       Executor callbackExecutor) {
 
     //thumbnailBuilder() 是 RequestOptions 类中的一个方法，用于设置加载缩略图的 RequestOptions 对象。通过 thumbnailBuilder() 方法，您可以为原始图片加载请求指定一个用于加载缩略图的 RequestOptions 对象。
+    //Glide.with(this).load(url).thumbnail(Glide.with(this).load(thumbnailUrl)).into(imageView);
     if (thumbnailBuilder != null) {
       // Recursive case: contains a potentially recursive thumbnail request builder.
       if (isThumbnailBuilt) {
@@ -1220,6 +1221,8 @@ public class RequestBuilder<TranscodeType> extends BaseRequestOptions<RequestBui
     } else if (thumbSizeMultiplier != null) {
       // Base case: thumbnail multiplier generates a thumbnail request, but cannot recurse.
       //在 Glide 图片加载库中，thumbSizeMultiplier() 是 RequestOptions 类中的一个方法，用于设置缩略图的大小倍数 例子：通过 thumbSizeMultiplier(0.5f) 方法将缩略图的大小设置为原始图片的一半大小。然后将这个 RequestOptions 对象应用到 Glide 的图片加载请求中。
+      // 设置缩略图的缩略比例
+      //Glide.with(this).load(url).thumbnail(0.5f).into(imageView);
       ThumbnailRequestCoordinator coordinator =
           new ThumbnailRequestCoordinator(requestLock, parentCoordinator);
       Request fullRequest =
@@ -1254,6 +1257,7 @@ public class RequestBuilder<TranscodeType> extends BaseRequestOptions<RequestBui
       return coordinator;
     } else {
       // Base case: no thumbnail.
+      //没有缩略图相关设置，直接获取原图请求。
       return obtainRequest(
           requestLock,
           target,
