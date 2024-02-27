@@ -288,6 +288,7 @@ public class GifDrawable extends Drawable
     }
 
     Bitmap currentFrame = state.frameLoader.getCurrentFrame();
+    //使用 GifFrameLoader 获取到当前帧的 Bitmap，然后使用 Canvas 将 Bitmap 绘制到 ImageView 上。就这样循环将每一帧的 Bitmap 都通过 Canvas 绘制到 ImageView 上，就形成了 GIF 动图。
     canvas.drawBitmap(currentFrame, null, getDestRect(), getPaint());
   }
 
@@ -337,7 +338,7 @@ public class GifDrawable extends Drawable
       invalidateSelf();
       return;
     }
-
+    //会调用draw方法
     invalidateSelf();
 
     if (getFrameIndex() == getFrameCount() - 1) {

@@ -98,31 +98,36 @@ public class ByteBufferGifDecoder implements ResourceDecoder<ByteBuffer, GifDraw
       ByteBuffer byteBuffer, int width, int height, GifHeaderParser parser, Options options) {
     long startTime = LogTime.getLogTime();
     try {
+      // 获取 GIF 头部信息
       final GifHeader header = parser.parseHeader();
       if (header.getNumFrames() <= 0 || header.getStatus() != GifDecoder.STATUS_OK) {
         // If we couldn't decode the GIF, we will end up with a frame count of 0.
         return null;
       }
-
+      // 根据 GIF 背景是否有透明通道来确定 Bitmap 的类型
       Bitmap.Config config =
           options.get(GifOptions.DECODE_FORMAT) == DecodeFormat.PREFER_RGB_565
               ? Bitmap.Config.RGB_565
               : Bitmap.Config.ARGB_8888;
-
+// 获取 Bitmap 的采样率
       int sampleSize = getSampleSize(header, width, height);
       GifDecoder gifDecoder = gifDecoderFactory.build(provider, header, byteBuffer, sampleSize);
       gifDecoder.setDefaultBitmapConfig(config);
       gifDecoder.advance();
+      //获取下一帧。这里获取的是第一帧的 Bitmap，内部就是将 GIF 中第一帧的数据转成 Bitmap 返回。
       Bitmap firstFrame = gifDecoder.getNextFrame();
       if (firstFrame == null) {
         return null;
       }
 
       Transformation<Bitmap> unitTransformation = UnitTransformation.get();
-
+      //GifDrawable 是一个实现了 Animatable 的 Drawable，所以 GifDrawable 可以播放 GIF 动图。
+      //创建 GifDrawable 的时候还创建了 GifFrameLoader 的实例，它的作用是帮助 GifDrawable 实现 GIF 动图播放的调度。
+      // GifFrameLoader 的构造函数中还创建了一个主线程的 Handler，这个后面会用到。
+      //
       GifDrawable gifDrawable =
           new GifDrawable(context, gifDecoder, unitTransformation, width, height, firstFrame);
-
+      //将 GifDrawable 包装成 GifDrawableResource 进行返回，GifDrawableResource 主要用来停止 GifDrawable 的播放，以及 Bitmap 的回收等。
       return new GifDrawableResource(gifDrawable);
     } finally {
       if (Log.isLoggable(TAG, Log.VERBOSE)) {
@@ -162,6 +167,7 @@ public class ByteBufferGifDecoder implements ResourceDecoder<ByteBuffer, GifDraw
   static class GifDecoderFactory {
     GifDecoder build(
         GifDecoder.BitmapProvider provider, GifHeader header, ByteBuffer data, int sampleSize) {
+      //StandardGifDecoder。它的作用是从 GIF 图像源读取帧数据，并将其解码为单独的帧用在动画中。
       return new StandardGifDecoder(provider, header, data, sampleSize);
     }
   }

@@ -17,6 +17,9 @@ import java.util.Map;
  * if no bitmaps of that size are present. We do not count addition or removal of bitmaps as an
  * access.
  */
+// * GroupedLinkedMap 来缓存 Bitmap，它是类似于 HashMap，不过和 HashMap 不同的是：HashMap 会移除相同 Key 的数据；
+// * GroupedLinkedMap 不会移除相同 Key 的数据，而是把相同 Key 的数据以列表的形式串联起来。HashMap 的 get()
+// * 方法也不会移除原来的数据，而 GroupedLinkedMap 会移除获取到的数据，
 class GroupedLinkedMap<K extends Poolable, V> {
   private final LinkedEntry<K, V> head = new LinkedEntry<>();
   private final Map<K, LinkedEntry<K, V>> keyToEntry = new HashMap<>();
@@ -49,6 +52,7 @@ class GroupedLinkedMap<K extends Poolable, V> {
       // 将当前 entry 添加到 Map 中
       keyToEntry.put(key, entry);
     } else {
+      //放入队列
       key.offer();
     }
 
@@ -132,7 +136,7 @@ class GroupedLinkedMap<K extends Poolable, V> {
   }
 
   /**
-   *  @desc  先移除当前节点
+   * 先移除当前节点
    */
   private static <K, V> void removeEntry(LinkedEntry<K, V> entry) {
     entry.prev.next = entry.next;

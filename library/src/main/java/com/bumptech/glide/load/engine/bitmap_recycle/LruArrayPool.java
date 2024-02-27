@@ -160,6 +160,7 @@ public final class LruArrayPool implements ArrayPool {
     while (currentSize > size) {
       Object evicted = groupedMap.removeLast();
       Preconditions.checkNotNull(evicted);
+      //获取IntegerArrayAdapter 还是 ByteArrayAdapter
       ArrayAdapterInterface<Object> arrayAdapter = getAdapterFromObject(evicted);
       currentSize -= arrayAdapter.getArrayLength(evicted) * arrayAdapter.getElementSizeInBytes();
       decrementArrayOfSize(arrayAdapter.getArrayLength(evicted), evicted.getClass());

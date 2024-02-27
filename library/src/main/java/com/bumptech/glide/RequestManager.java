@@ -725,6 +725,7 @@ public class RequestManager
 
   @Override
   public void onTrimMemory(int level) {
+    //TRIM_MEMORY_MODERATE：表示应用程序在内存较紧张情况下，可能会被终止，应该释放一些资源
     if (level == TRIM_MEMORY_MODERATE && pauseAllRequestsOnTrimMemoryModerate) {
       pauseAllRequestsRecursive();
     }

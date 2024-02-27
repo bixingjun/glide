@@ -16,7 +16,6 @@ class AttributeStrategy implements LruPoolStrategy {
   @Override
   public void put(Bitmap bitmap) {
     final Key key = keyPool.get(bitmap.getWidth(), bitmap.getHeight(), bitmap.getConfig());
-
     groupedMap.put(key, bitmap);
   }
 
@@ -68,6 +67,11 @@ class AttributeStrategy implements LruPoolStrategy {
       Key result = get();
       result.init(width, height, config);
       return result;
+    }
+
+    //自己加的 这样好理解点 也可以把KeyPool传入Key中 在Key直接调用offer
+    void remove(Key key) {
+        offer(key);
     }
 
     @Override

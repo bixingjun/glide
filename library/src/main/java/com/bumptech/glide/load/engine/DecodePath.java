@@ -82,7 +82,9 @@ public class DecodePath<DataType, ResourceType, Transcode> {
       List<Throwable> exceptions)
       throws GlideException {
     Resource<ResourceType> result = null;
-    //noinspection ForLoopReplaceableByForEach to improve perf
+    //遍历 decoders 集合找到合适的资源解码器（ResourceDecoder）进行解码。decoders 集合可能包含 ByteBufferGifDecoder，
+    // 也可能包含 ByteBufferBitmapDecoder 与 VideoDecoder 等。
+    // 解码后 result 不为空，说明解码成功，则跳出循环。
     for (int i = 0, size = decoders.size(); i < size; i++) {
       ResourceDecoder<DataType, ResourceType> decoder = decoders.get(i);
       try {
@@ -91,8 +93,6 @@ public class DecodePath<DataType, ResourceType, Transcode> {
           data = rewinder.rewindAndGet();
           result = decoder.decode(data, width, height, options);
         }
-        // Some decoders throw unexpectedly. If they do, we shouldn't fail the entire load path, but
-        // instead log and continue. See #2406 for an example.
       } catch (IOException | RuntimeException | OutOfMemoryError e) {
         if (Log.isLoggable(TAG, Log.VERBOSE)) {
           Log.v(TAG, "Failed to decode data for " + decoder, e);

@@ -216,6 +216,7 @@ class GifFrameLoader {
       startFromFirstFrame = false;
     }
     if (pendingTarget != null) {
+      //如果存在未绘制的帧数据（例如正在播放，然后熄屏再亮屏就会走这里），则调用 onFrameReady 方法，这个方法放到后面再分析。
       DelayTarget temp = pendingTarget;
       pendingTarget = null;
       onFrameReady(temp);
@@ -226,7 +227,7 @@ class GifFrameLoader {
     // we want to spend on the current frame.
     int delay = gifDecoder.getNextDelay();
     long targetTime = SystemClock.uptimeMillis() + delay;
-
+    //向前移动帧。
     gifDecoder.advance();
     next = new DelayTarget(handler, gifDecoder.getCurrentFrameIndex(), targetTime);
     requestBuilder.apply(signatureOf(getFrameSignature())).load(gifDecoder).into(next);
