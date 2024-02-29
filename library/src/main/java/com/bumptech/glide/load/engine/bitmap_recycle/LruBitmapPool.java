@@ -315,12 +315,25 @@ public class LruBitmapPool implements BitmapPool {
             + "\nStrategy="
             + strategy);
   }
-
+  //Android 3.0（API 级别 11）引入了 BitmapFactory.Options.inBitmap 字段。
+  // 如果设置了此选项，那么采用 Options 对象的解码方法会在加载内容时,尝试重复使用现有 Bitmap。
+  // 这意味着 Bitmap 的内存得到了重复使用，从而提高了性能，同时避免了内存分配和取消分配。但是呢，
+  // 因为 Android 版本碎片化的原因，复用的条件在不同的版本不一样。
+  // 根据官网的解释有两种区别：分别是 Android 4.4 之前和 Android 4.4 之后
   private static LruPoolStrategy getDefaultStrategy() {
     final LruPoolStrategy strategy;
     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT) {
+      //从 Build.VERSION_CODES.KITKAT 开始， BitmapFactory 可以重用任何可变 Bitmap 来解码任何其他 Bitmap，
+      // 只要解码 Bitmap 的内存大小 byte count 小于或等于到复用 Bitmap 的 allocated byte count 。
+      // 这可能是因为固有尺寸较小，或者缩放后的尺寸（对于密度/样本大小）较小。
       strategy = new SizeConfigStrategy();
     } else {
+      //在 Build.VERSION_CODES.KITKAT 之前，适用其他约束：
+      //
+      //正在解码的图像（无论是作为资源还是作为流）必须是 jpeg 或 png 格式。
+      //仅支持相同大小的位图
+      //并将 inSampleSize 设置为 1。
+      //重用位图的 configuration 将覆盖 inPreferredConfig 的设置（如果设置）。
       strategy = new AttributeStrategy();
     }
     return strategy;

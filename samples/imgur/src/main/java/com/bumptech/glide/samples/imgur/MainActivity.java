@@ -1,5 +1,6 @@
 package com.bumptech.glide.samples.imgur;
 
+import android.graphics.drawable.Drawable;
 import android.os.Bundle;
 import android.text.TextUtils;
 import android.view.LayoutInflater;
@@ -8,12 +9,19 @@ import android.view.ViewGroup;
 import android.widget.ImageView;
 import android.widget.TextView;
 import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 import androidx.recyclerview.widget.RecyclerView.ViewHolder;
 import com.bumptech.glide.Glide;
+import com.bumptech.glide.load.DataSource;
+import com.bumptech.glide.load.engine.GlideException;
+import com.bumptech.glide.request.RequestListener;
+import com.bumptech.glide.request.target.Target;
+import com.bumptech.glide.request.target.ViewTarget;
 import com.bumptech.glide.samples.imgur.api.Image;
+import com.bumptech.glide.util.Executors;
 import dagger.android.AndroidInjection;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -81,7 +89,8 @@ public final class MainActivity extends AppCompatActivity {
       Image image = images.get(position);
       vh.title.setText(TextUtils.isEmpty(image.title) ? image.description : image.title);
 
-      Glide.with(vh.imageView).load(image.link).into(vh.imageView);
+      Glide.with(vh.imageView).load(image.link)
+          .into(vh.imageView);
     }
 
     @Override

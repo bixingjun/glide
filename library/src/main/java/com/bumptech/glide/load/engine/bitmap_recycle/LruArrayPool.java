@@ -74,6 +74,7 @@ public final class LruArrayPool implements ArrayPool {
     groupedMap.put(key, array);
     // 计算当前类型的数组的缓存数量
     NavigableMap<Integer, Integer> sizes = getSizesForAdapter(arrayClass);
+    //key.size大小有几个
     Integer current = sizes.get(key.size);
     sizes.put(key.size, current == null ? 1 : current + 1);
     // 更新缓存占用大小
@@ -133,6 +134,7 @@ public final class LruArrayPool implements ArrayPool {
         && (isNoMoreThanHalfFull() || actualSize <= (MAX_OVER_SIZE_MULTIPLE * requestedSize));
   }
 
+  //当前大小没有超过最大的一半
   private boolean isNoMoreThanHalfFull() {
     return currentSize == 0 || (maxSize / currentSize >= 2);
   }

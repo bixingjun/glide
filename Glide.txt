@@ -1,0 +1,160 @@
+Glide  implements ComponentCallbacks2 
+
+ComponentCallbacks2 是 Android 中的一个接口，用于接收系统级别的组件回调事件。通过实现该接口，Glide 类可以监听和处理系统级别的内存管理事件，例如内存不足时的回调。 onTrimMemory（）
+
+RequestManagerRetriever implements Handler.Callback
+handleMessage（）
+
+
+RequestManager implements LifecycleListener, ModelTypes<RequestBuilder<Drawable>>
+
+
+SupportRequestManagerFragment extends Fragment 
+
+
+http://www.noobyard.com/article/p-gqmfwpcu-mh.html
+方法2、使用Looper队列
+commit把OP ADD任务加入到Looper队列中，而且是MainLooper队列，因为队列是先进先出的关系，所以，咱们在OP ADD为完成以前，进行拦截。完成以后删除缓存队列
+
+内存泄漏
+内存溢出
+
+
+public interface BitmapPool {
+ //获取Bitmap缓存池最大大小	
+  long getMaxSize();
+//设置缓存池大小比例 低 正常 高 maxSize = Math.round(initialMaxSize * sizeMultiplier);
+  void setSizeMultiplier(float sizeMultiplier);
+//放入Bitmap
+  void put(Bitmap bitmap);
+//获取Bitmap 
+  Bitmap get(int width, int height, Bitmap.Config config);
+//获取脏Bitmap（未清除Bitmap原有数据）
+  Bitmap getDirty(int width, int height, Bitmap.Config config);
+//清空缓存池
+  void clearMemory();
+//调整缓存池大小
+  void trimMemory(int level);
+}
+
+interface LruPoolStrategy {
+//放入bitmap
+  void put(Bitmap bitmap);
+  Bitmap get(int width, int height, Bitmap.Config config);
+//移除最后一个元素
+  Bitmap removeLast();
+//打印日志 获取bitmap实际大小和config
+  String logBitmap(Bitmap bitmap);
+//打印日志 根据宽高和config获取估算大小
+  String logBitmap(int width, int height, Bitmap.Config config);
+//获取bitmap实际大小
+  int getSize(Bitmap bitmap);
+}
+
+`getAllocationByteCount` 和 `width * height * getBytesPerPixel(config)` 都是用于计算 Bitmap 对象占用内存大小的方法，但它们之间有一些区别。
+
+1. `getAllocationByteCount`：
+   - `getAllocationByteCount` 是 Bitmap 类中的方法，在 Android API 19（Android 4.4）及以上版本中可用。
+   - 它返回的是 Bitmap 对象实际分配的内存大小，即 Bitmap 对象在内存中占用的字节数。
+   - `getAllocationByteCount` 方法会考虑 Bitmap 对象的实际像素数据、配置信息等，返回的值更加准确，是 Bitmap 对象实际占用内存的大小。
+
+2. `width * height * getBytesPerPixel(config)`：
+   - 这是一种手动计算 Bitmap 内存大小的方法，通过 Bitmap 的宽度、高度和像素配置计算得出。
+   - `width * height` 计算出 Bitmap 的像素数量，乘以 `getBytesPerPixel(config)` 得到每个像素占用的字节数，再乘以像素数量得到总的内存占用大小。
+   - 这种方法是一种估算，可能不考虑 Bitmap 对象的一些其他内存开销，比如 Bitmap 头信息、对齐等，因此可能比实际内存消耗稍微少一些。
+
+总的来说，`getAllocationByteCount` 更准确地反映了 Bitmap 对象实际占用的内存大小，而手动计算的方式是一种估算方法。在需要准确计算 Bitmap 内存占用大小时，推荐使用 `getAllocationByteCount` 方法。
+
+如果您有任何其他问题或需要进一步帮助，请随时告诉我，我会很乐意继续协助您。
+
+
+package com.bumptech.glide.load.engine.bitmap_recycle;
+
+/** Interface for an array pool that pools arrays of different types. */
+
+public interface ArrayPool {
+  int STANDARD_BUFFER_SIZE_BYTES = 64 * 1024;
+//放入数组
+  <T> void put(T array, Class<T> arrayClass);
+//放入数组
+  <T> void put(T array);
+//获取符合当前size的数组
+  <T> T get(int size, Class<T> arrayClass);
+//清空缓存池
+  void clearMemory();
+//调整缓存池大小
+  void trimMemory(int level);
+}
+
+
+package com.bumptech.glide.load.engine.cache;
+
+import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
+import com.bumptech.glide.load.Key;
+import com.bumptech.glide.load.engine.Resource;
+
+public interface MemoryCache {
+  
+  interface ResourceRemovedListener {
+    void onResourceRemoved(@NonNull Resource<?> removed);
+  }
+
+  long getCurrentSize();
+
+  long getMaxSize();
+
+
+  void setSizeMultiplier(float multiplier);
+
+
+  Resource<?> remove(@NonNull Key key);
+
+
+  Resource<?> put(@NonNull Key key, @Nullable Resource<?> resource);
+
+
+  void setResourceRemovedListener(@NonNull ResourceRemovedListener listener);
+
+
+  void clearMemory();
+
+  void trimMemory(int level);
+}
+
+into  buildRequest 构建请求
+
+ requestManager.track(target, request);
+
+ targetTracker.track(target);
+ requestTracker.runRequest(request);
+
+request.begin();
+SingleRequest.begin
+
+// 等待 target （ImageView）完成尺寸的测量。
+        target.getSize(this);
+
+ViewTarget sizeDeterminer.getSize(cb);  observer.addOnPreDrawListener(layoutListener);  回调onSizeReady
+
+engine.load(）
+
+loadFromMemory -- loadFromActiveResources -- loadFromCache
+
+  没有缓存 waitForExistingOrStartNewJob --  engineJob.start(decodeJob);
+
+DecodeJob run
+
+runWrapped()  INITIALIZE ->RESOURCE_CACHE ResourceCacheGenerator runGenerators()   ResourceCacheGenerator .startNext 返回false往下走
+
+stage = DATA_CACHE DataCacheGenerator while循环继续走DataCacheGenerator.startNext  返回false往下走
+
+stage = SOURCE SourceGenerator 判断进来 执行 reschedule(RunReason.SWITCH_TO_SOURCE_SERVICE);  执行run方法 runWrapped case SWITCH_TO_SOURCE_SERVICE: runGenerators();    SourceGenerator  .startNext()   startNextLoad(loadData); MultiModelLoader.loadData 
+HttpUrlFetcher.loadData  loadDataWithRedirects 网络请求得到流 回调执行 SourceGenerator.onDataReadyInternal(toStart, data); 再执行DecodeJob.reschedule     reschedule(RunReason.SWITCH_TO_SOURCE_SERVICE); runGenerators();  SourceGenerator  .startNext() sourceCacheGenerator.startNext()== DataCacheGenerator.startNext()   ByteBufferFileLoader.loadData回调执行onDataReady  DecodeJob.onDataFetcherReady  decodeFromRetrievedData（） 解码数据decodeFromData decodeFromFetcher decodeHelper.getLoadPath runLoadPath  path.load得到结果返回 notifyEncodeAndRelease通知  notifyComplete  EngineJob.onResourceReady
+notifyCallbacksOfResult()   entry.executor.execute(new CallResourceReady(entry.cb));     callCallbackOnResourceReady(cb); SingleRequest.onResourceReady  onResourceReady  ImageViewTarget.onResourceReady(result, animation);  setResourceInternal() setResource DrawableImageViewTarget.setResource
+  
+总的来说：
+SingleRequest begin 获取view的宽高 onSizeReady 然后Engine.load 先尝试从内存缓存中加载 然后再 engineJob.start(decodeJob); 请求网络得到流，再存储到硬盘缓存，再从缓存中取出，再回调到SingleRequest当中再通知imageview加载图片
+
+
+

@@ -537,9 +537,11 @@ public final class GlideBuilder {
     }
 
     if (bitmapPool == null) {
-      //Bitmap 的缓存，在 Android 8 及其以上版本缓存大小是 0；在 Android 8 以下版本缓存的大小是 4 倍屏幕大小图片所需要的内存。
+      //Bitmap 的缓存，在 Android 8 及其以上版本缓存大小是 1 倍屏幕大小图片所需要的内存；在 Android 8 以下版本缓存的大小是 4 倍屏幕大小图片所需要的内存。
       //因为 Android 8 以上的 Bitmap 的配置使用的是 Config.HARDWARE，它所占用的是显存，而不占用内存，Bitmap 中的数据也无法修改，所以不缓存。
+      //在 Android 8.0（API 级别 26）及更高版本中，Bitmap 像素数据存储在 Native 堆中。
       int size = memorySizeCalculator.getBitmapPoolSize();
+      Log.e("bxj","size "+size);
       if (size > 0) {
         bitmapPool = new LruBitmapPool(size);
       } else {

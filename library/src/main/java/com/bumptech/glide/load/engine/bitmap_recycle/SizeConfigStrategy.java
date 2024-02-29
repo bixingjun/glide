@@ -58,6 +58,7 @@ public class SizeConfigStrategy implements LruPoolStrategy {
   private final KeyPool keyPool = new KeyPool();
   private final GroupedLinkedMap<Key, Bitmap> groupedMap = new GroupedLinkedMap<>();
   private final Map<Bitmap.Config, NavigableMap<Integer, Integer>> sortedSizes = new HashMap<>();
+  //NavigableMap 也就是 TreeMap 保存了图片大小和这个大小的图片有几个(数量)。当数据插入时，会按照大小排序。
 
   @Override
   public void put(Bitmap bitmap) {
@@ -69,7 +70,9 @@ public class SizeConfigStrategy implements LruPoolStrategy {
     groupedMap.put(key, bitmap);
     // 重新计算当前配置的 Bitmap 的数量。
     NavigableMap<Integer, Integer> sizes = getSizesForConfig(bitmap.getConfig());
+    //当前图片大小 有几个
     Integer current = sizes.get(key.size);
+    //当前大小图片加一
     sizes.put(key.size, current == null ? 1 : current + 1);
   }
 
@@ -93,15 +96,23 @@ public class SizeConfigStrategy implements LruPoolStrategy {
 
   private Key findBestKey(int size, Bitmap.Config config) {
     Key result = keyPool.get(size, config);
+    // 根据传入的config，选择合适和使用的config，可能一种config合适复用多种config
     for (Bitmap.Config possibleConfig : getInConfigs(config)) {
+      // 根据config，获取对应config所有大小的TreeMap
       NavigableMap<Integer, Integer> sizesForPossibleConfig = getSizesForConfig(possibleConfig);
+      // 得到大小大于或者等于指定复用的size的最小值
+      //ceilingKey 是 Java 中 TreeMap 类的一个方法，用于返回大于或等于给定键的最小键，如果没有这样的键，则返回 null。
       Integer possibleSize = sizesForPossibleConfig.ceilingKey(size);
       if (possibleSize != null && possibleSize <= size * MAX_SIZE_MULTIPLE) {
         if (possibleSize != size
             || (possibleConfig == null ? config != null : !possibleConfig.equals(config))) {
+          //如果取出的 possibleSize 和目标 size 不相等，说明找到了最优解，则说明上面的 result 对应的 key 不是最优解，
+          // 先把它放到 key 缓存池中，然后用最优的 possibleSize 和 possibleConfig 重新从 key 缓存池中生成或者获取一个 key
           keyPool.offer(result);
+          // 重新用最优的size和config获取对应的最优key
           result = keyPool.get(possibleSize, possibleConfig);
         }
+        //如果取出的 possibleSize 和目标 size 相等，说明上面目标 key(resul)就可能是最优的，则把当前的配置和大小更新 key
         break;
       }
     }
